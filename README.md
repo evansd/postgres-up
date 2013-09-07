@@ -1,7 +1,7 @@
 postgres-up
 ===========
 
-Makes developing with PostgreSQL as convenient as developing with Sqlite
+Make developing with PostgreSQL as convenient as developing with Sqlite.
 
 **postgres-up** creates and runs self-contained PostgreSQL instances. All the
 database state (including the connection socket) lives in a single
@@ -19,9 +19,12 @@ This is a standalone bash script, just copy it somewhere you want it:
 
     curl -O https://raw.github.com/evansd/postgres-up/master/postgres-up && chmod a+x postgres-up
 
-Of course, you'll need the Postgres binaries installed somewhere. You
-can run postgres-up to get hints on how to install Postgres on your
-platform.
+The idea is that you can bundle this script with your project to make it
+as easy as possible for developers to get started.
+
+Of course, you'll need the Postgres binaries installed somewhere. If *postgres-up*
+can't find Postgres it will display hints as to how to install Postgres on your
+system.
 
 
 Example session
