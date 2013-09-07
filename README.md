@@ -67,16 +67,15 @@ directory as the script:
     #
     # This file is read by 'sourcing' it in bash, so you can use any bash constructs
     # you like to set the config variables
-    #
-    #
+    
     # Directory to store data files, evaluated relative to the config file path
     # Default is ./pgdata
     postgres_data_dir=./pgdata
-    #
+    
     # Postgres version to use (major and minor version only e.g. 9.2 not 9.2.4)
     # If not specified will use the first version it finds
     postgres_version=9.2
-    #
+    
     # Directories in which to look for Postgres binaries
     # Sensible defaults will be used if this is not specified
     postgres_bin_path="/my/special/postgres/install:$PATH"
