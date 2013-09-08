@@ -17,6 +17,8 @@
 #
 # Any additional arguments are passed directly to the `postgres` command.
 #
+# For further details see:
+# http://postgres-up.evans.io
 #
 # -----------------------------------------------------------------------------
 # The MIT License (MIT)
