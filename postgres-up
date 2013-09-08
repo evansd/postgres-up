@@ -68,8 +68,9 @@ function show_install_hint (){
 unset CDPATH
 cd "$(dirname "$BASH_SOURCE[0]")"
 
+# Set default data dir (if not already set)
+: ${postgres_data_dir:="./pgdata"}
 # Get config
-postgres_data_dir="$PWD/pgdata"
 if [ -e 'postgres-up.config' ]; then
   source postgres-up.config
 else

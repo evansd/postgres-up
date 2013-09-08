@@ -19,8 +19,8 @@ This is a standalone bash script, just copy it somewhere you want it:
 
     curl -O https://raw.github.com/evansd/postgres-up/master/postgres-up && chmod a+x postgres-up
 
-The idea is that you can bundle this script with your project to make it
-as easy as possible for developers to get started.
+The idea is that you can bundle this script with your project (together with a config file
+-- see below) to make it as easy as possible for developers to get started.
 
 Of course, you'll need the Postgres binaries installed somewhere. If *postgres-up*
 can't find Postgres it will display hints as to how to install Postgres on your
@@ -79,6 +79,9 @@ directory as the script:
     # Directories in which to look for Postgres binaries
     # Sensible defaults will be used if this is not specified
     postgres_bin_path="/my/special/postgres/install:$PATH"
+
+Additionally, any of the variables set in the config file can also be
+set by passing them in the shell environment.
 
 
 Compatibility
