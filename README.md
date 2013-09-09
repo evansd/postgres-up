@@ -11,6 +11,9 @@ create experimental "forks" of your database.
 If you need to run different versions of Postgres for different
 projects, that's supported too.
 
+Nothing to run as root; no configuration: just type a single command and
+you're ready to go.
+
 
 Installation
 ------------
@@ -22,9 +25,16 @@ This is a standalone bash script, just copy it somewhere you want it:
 The idea is that you can bundle this script with your project (together with a config file
 -- see below) to make it as easy as possible for developers to get started.
 
-Of course, you'll need the Postgres binaries installed somewhere. If *postgres-up*
-can't find Postgres it will display hints as to how to install Postgres on your
-system.
+
+#### Notes
+
+* You will, of course, need the Postgres binaries installed somewhere. If
+**postgres-up** can't find Postgres it will display hints as to how to install it
+on your system.
+
+* Hopefully this is obvious, but this is for *developing*
+applications with Postgres, absolutely not for running Postgres in
+production!
 
 
 Example session
@@ -56,8 +66,8 @@ Example session
 Configuration
 -------------
 
-Optionally, you can create a `postgres-up.config` file in the same
-directory as the script:
+**postgres-up** will run quite happily without any configuration, but you can optionally
+create a config file in the same directory as the script called `postgres-up.config`:
 
     # Example config file for postgres-up
     #
@@ -88,5 +98,5 @@ Compatibility
 -------------
 
 Currently tested on Ubuntu 13.04 and OS X 10.8 but I aiming for as wide
-as possible \*nix compatibility so if you have problems running this let
+as possible *\*nix* compatibility so if you have problems running this let
 me know. (Windows compatibility is not a target unfortunately.)
