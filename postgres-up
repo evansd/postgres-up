@@ -83,7 +83,7 @@ fi
 # sensible defaults
 if [ -z "$postgres_bin_path" ];then
   postgres_bin_path="$PATH"
-  # On Ubuntu, postgres isn't on PATH by default, but pg_config is
+  # On Ubuntu, postgres isn't on PATH by default, but pg_config is so check that
   pg_config_dir=$(pg_config --bindir 2>/dev/null || true)
   if [ -n "$pg_config_dir" ]; then
     postgres_bin_path="$postgres_bin_path:$pg_config_dir"
@@ -93,6 +93,10 @@ if [ -z "$postgres_bin_path" ];then
   if [ -n "$postgres_version" ]; then
     postgres_bin_path="/usr/lib/postgresql/$postgres_version/bin:$postgres_bin_path"
   fi
+  # Standard locations for Ubuntu Postgres
+  for usr_lib_path in $(shopt -s nullglob; echo /usr/lib/postgresql/*/bin); do
+     postgres_bin_path="$postgres_bin_path:$usr_lib_path"
+  done
   # Installation path for Postgres.app for users who have it installed but
   # not added to PATH
   postgres_bin_path="$postgres_bin_path:/Applications/Postgres.app/Contents/MacOS/bin"
