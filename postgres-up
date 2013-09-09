@@ -133,11 +133,17 @@ fi
 # Normalize the path
 postgres_data_dir=$(cd "$postgres_data_dir" && pwd)
 
-# Check the FS type else Postgres will die with a cryptic error
-fs_type=$(df -TP "$postgres_data_dir" | tail -n 1 | awk '{print $2}')
-if [ "$fs_type" == "vboxsf" ]; then
-  error "You cannot run Postgres out of the VirtualBox shared filesystem"
-  exit 1
+# Warn if tying to run Postgres out of the VirtualBox shared filesystem
+# as this will probably result in cryptic errors.
+# Note that this check won't work on OS X as it ships with a very different
+# version of `df` but that's OK as it's very unlikely you'd be using OS X as
+# a VirtualBox guest OS anyway.
+fs_type=$(
+  ( df --print-type --portability "$postgres_data_dir" || true ) 2>/dev/null \
+    | tail -n 1 | awk '{print $2}')
+if [ "$fs_type" == "vboxfs" ]; then
+  error "You are runing Postgres out of the VirtualBox shared filesystem"
+  error "This probably won't work very well"
 fi
 
 if [ ! "$(ls -A "$postgres_data_dir")" ]; then
