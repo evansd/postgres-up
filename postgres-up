@@ -133,17 +133,15 @@ fi
 # Normalize the path
 postgres_data_dir=$(cd "$postgres_data_dir" && pwd)
 
-# Warn if tying to run Postgres out of the VirtualBox shared filesystem
-# as this will probably result in cryptic errors.
 # Note that this check won't work on OS X as it ships with a very different
 # version of `df` but that's OK as it's very unlikely you'd be using OS X as
-# a VirtualBox guest OS anyway.
+# a VirtualBox guest OS anyway
 fs_type=$(
   ( df --print-type --portability "$postgres_data_dir" || true ) 2>/dev/null \
     | tail -n 1 | awk '{print $2}')
 if [ "$fs_type" == "vboxfs" ]; then
-  error "You are runing Postgres out of the VirtualBox shared filesystem"
-  error "This probably won't work very well"
+  error "You are running Postgres out of the VirtualBox shared filesystem"
+  error "This probably won't work very well!"
 fi
 
 if [ ! "$(ls -A "$postgres_data_dir")" ]; then
