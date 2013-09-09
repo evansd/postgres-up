@@ -50,9 +50,9 @@ red=$(tput setaf 1)
 green=$(tput setaf 2)
 yellow=$(tput setaf 3)
 normal=$(tput sgr0)
-function error (){ echo "$red$@$normal"; }
-function warn (){ echo "$yellow$@$normal"; }
-function confirm (){ echo "$green$@$normal"; }
+function error (){ echo "$red$@$normal" 1>&2; }
+function warn (){ echo "$yellow$@$normal" 1>&2; }
+function confirm (){ echo "$green$@$normal" 1>&2; }
 
 function show_install_hint (){
   version="$1"
@@ -153,22 +153,22 @@ else
 fi
 
 # A bunch of helpful tips
-echo
+confirm
 confirm "- To create a new database just delete or move this directory"
 confirm "  To make a copy, just use cp -r (with the server stopped)"
-echo
+confirm
 confirm "- To get more logging output run:"
 confirm "  $0 -d 2"
-echo
+confirm
 confirm "- To export this connection info:"
 confirm "  export DATABASE_URL='postgres://postgres@localhost/postgres?host=$postgres_data_dir'"
-echo
+confirm
 confirm "- To connect to this database with the CLI client:"
 confirm "  psql -d \"\$DATABASE_URL\""
-echo
+confirm
 confirm "- To load a database dump (will drop existing tables):"
 confirm "  pg_restore -cOxd \"\$DATABASE_URL\" <path/to/dumpfile>"
-echo
+confirm
 
 # Run postgres server:
 #   -F         : disable fsync, we don't need it in development
