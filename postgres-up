@@ -1,24 +1,31 @@
 #!/usr/bin/env bash
 # -----------------------------------------------------------------------------
 #
-# Usage: ./postgres-up [POSTGRES ARGS ...]
+# Usage: ./postgres-up [COMMAND] [POSTGRES ARGS ...]
 #
-# Creates a self-contained PostgreSQL instance in a local directory and starts
-# a server listening on a UNIX socket in that directory.
+# If COMMAND is 'postgres' or is  missing, creates a self-contained Postgres
+# instance in a local directory and starts a server listening on a UNIX
+# socket in that directory.
 #
-# Looks for an optional `postgres-up.config` file in the same directory which
-# can define the following shell variables:
+# If COMMAND is any other Postgres command (e.g., 'psql' 'pg_restore'), runs
+# that command configured to talk to the server started above.
 #
-#   postgres_data_dir :  directory in which to create database, relative to
-#                        config file (default: ./pgdata)
-#   postgres_version  :  require a specific version of Postgres (if none
-#                        specified will use the first version found)
-#   postgres_bin_path :  list of directories in which to look for Postgres
+# Any additional arguments are passed directly to the Postgres command.
 #
-# Any additional arguments are passed directly to the `postgres` command.
+# Looks for an optional `postgres-up.config` file in the same directory as this
+# script which can define the following shell variables:
 #
-# For further details see:
-# http://postgres-up.evans.io
+#   postgres_data_dir   :  directory in which to create database, relative to
+#                          config file (default: ./pgdata)
+#
+#   postgres_version    :  require a specific version of Postgres (if none
+#                          specified will use the first version found)
+#
+#   postgres_bin_path   :  list of directories in which to look for Postgres
+#
+#   <COMMAND_NAME>_args : sets default arguments for named Postgres command
+#
+# For further details see: http://postgres-up.evans.io
 #
 # -----------------------------------------------------------------------------
 # The MIT License (MIT)
@@ -54,58 +61,122 @@ function error (){ echo "$red$@$normal" 1>&2; }
 function warn (){ echo "$yellow$@$normal" 1>&2; }
 function confirm (){ echo "$green$@$normal" 1>&2; }
 
-function show_install_hint (){
-  version="$1"
-  [ -n "$version" ] && version_suffix="-$version" || version_suffix=''
-  if [ -f /etc/debian_version ]; then
-    warn "Try running: sudo apt-get install postgresql$version_suffix"
-  elif [ $(uname) == "Darwin" ]; then
-    warn "Try installing Postgres$version_suffix from http://postgresapp.com/"
-  else
-    warn "See: http://www.postgresql.org/download/"
-  fi
-}
-
 # Change into this script's directory
 unset CDPATH
 cd "$(dirname "$BASH_SOURCE[0]")"
 
 # Set default data dir (if not already set)
 : ${postgres_data_dir:="./pgdata"}
+
+# Command is first argument, unless first argument is missing or is
+# an option (i.e. starts with '-')
+command="$1"
+if [ -z "$command" -o "${command:0:1}" == '-' ]; then
+  command='postgres'
+else
+  shift
+fi
+
+# The 'postgres' command (which creates/starts db) gets much
+# more complex treatment later on; here we handle the simpler
+# commands which assume an already created db
+if [ "$command" != 'postgres'  ]; then
+  # Get config if it exists
+  if [ -e 'postgres-up.config' ]; then
+    source postgres-up.config
+  fi
+  # Check the database has been created
+  if [ ! -e "$postgres_data_dir/postmaster.opts" ]; then
+    error "You must run $0 to start the database before running any other commands"
+    exit 1
+  fi
+  # Normalize the path
+  postgres_data_dir=$(cd "$postgres_data_dir" && pwd)
+
+  # postmaster.opts contains the last command run to start the server so
+  # we can use that to determine the directory containing other binaries
+  postmaster_cmd_array=( $(cat "$postgres_data_dir/postmaster.opts") )
+  postgres_bin_dir=$(dirname "$postmaster_cmd_array[0]")
+
+  # Default arguments are configured by variables of the form
+  # <command_name>_args (e.g., pg_restore_args)
+  default_arg_var_name="${command}_args"
+  default_args=${!arg_var_name}
+
+  export PGHOST="$postgres_data_dir"
+  export PGDATA="$postgres_data_dir"
+  export PGDATABASE='postgres'
+  export PGUSER='postgres'
+
+  # Extra default argument for pg_restore which requires the
+  # database to be explicity specified (other commands will
+  # just use PGDATABASE variable)
+  [ "$command" == 'pg_restore' ] && default_args="--dbname=$PGDATABASE $default_args"
+
+  # Run the command
+  exec "$postgres_bin_dir/$command" $default_args $@
+fi
+
+
+
+function show_install_hint (){
+  version="$1"
+  [ -n "$version" ] && version_suffix="-$version" || version_suffix=''
+  # Debian/Ubuntu
+  if [ -f /etc/debian_version ]; then
+    warn "Try running: sudo apt-get install postgresql$version_suffix"
+  # OS X
+  elif [ $(uname) == "Darwin" ]; then
+    warn "Try installing Postgres$version_suffix from http://postgresapp.com/"
+  # Fallback
+  else
+    warn "See: http://www.postgresql.org/download/"
+  fi
+}
+
+# Set default paths to search for Postgres
+postgres_bin_path="$PATH"
+# On Ubuntu, postgres isn't on PATH by default, but pg_config is so check that
+pg_config_dir=$(pg_config --bindir 2>/dev/null || true)
+if [ -n "$pg_config_dir" ]; then
+  postgres_bin_path="$postgres_bin_path:$pg_config_dir"
+fi
+# Standard locations for Ubuntu Postgres
+for usr_lib_path in $(shopt -s nullglob; echo /usr/lib/postgresql/*/bin); do
+   postgres_bin_path="$postgres_bin_path:$usr_lib_path"
+done
+# Installation path for Postgres.app for users who have it installed but
+# not added to PATH
+postgres_bin_path="$postgres_bin_path:/Applications/Postgres.app/Contents/MacOS/bin"
+
 # Get config
 if [ -e 'postgres-up.config' ]; then
+  confirm "Using settings from 'postgres-up.config'"
   source postgres-up.config
 else
-  warn "No 'postgres-up.config' file found: using default settings"
+  confirm "No 'postgres-up.config' file found: using default settings"
 fi
 
-# If postgres_bin_path isn't explicity set, determine some
-# sensible defaults
-if [ -z "$postgres_bin_path" ];then
-  postgres_bin_path="$PATH"
-  # On Ubuntu, postgres isn't on PATH by default, but pg_config is so check that
-  pg_config_dir=$(pg_config --bindir 2>/dev/null || true)
-  if [ -n "$pg_config_dir" ]; then
-    postgres_bin_path="$postgres_bin_path:$pg_config_dir"
-  fi
-  # If a version's been specified we *prepend* the standard version-specific
-  # path so the specified version matches first
-  if [ -n "$postgres_version" ]; then
-    postgres_bin_path="/usr/lib/postgresql/$postgres_version/bin:$postgres_bin_path"
-  fi
-  # Standard locations for Ubuntu Postgres
-  for usr_lib_path in $(shopt -s nullglob; echo /usr/lib/postgresql/*/bin); do
-     postgres_bin_path="$postgres_bin_path:$usr_lib_path"
-  done
-  # Installation path for Postgres.app for users who have it installed but
-  # not added to PATH
-  postgres_bin_path="$postgres_bin_path:/Applications/Postgres.app/Contents/MacOS/bin"
-fi
+function get_postgres_version (){
+  # Get the version (major.minor) of the Postgres binary
+  "$1" --version | sed -nEe 's/^.* ([0-9]+\.[0-9]+)(\.[^ ]+)?$/\1/p'
+}
 
-# Find the Postgres binary or display a helpful error
-postgres_bin=$(PATH="$postgres_bin_path" which postgres || true)
+# Search the path for a Postgres binary of the right version
+postgres_bin=''
+found_version=''
+for match in $(PATH="$postgres_bin_path" which -a postgres || true); do
+  found_version=$(get_postgres_version "$match")
+  if [ -z "$postgres_version" -o "$found_version" == "$postgres_version" ]; then
+    postgres_bin="$match"
+    break
+  fi
+done
+
 if [ -z "$postgres_bin" ]; then
-    error "Couldn't find Postgres binaries, looked in:"
+  [ -z "$postgres_version" ] && target='binaries' || target="$postgres_version binaries"
+  [ -z "$found_version" ] || target="$target (found $found_version instead)"
+    error "Couldn't find Postgres $target, looked in:"
     (
       IFS=:
       for p in $postgres_bin_path; do
@@ -117,18 +188,7 @@ if [ -z "$postgres_bin" ]; then
 fi
 postgres_bin_dir=$(dirname "$postgres_bin")
 
-# Get the version (major.minor) of the Postgres binary
-found_version=$("$postgres_bin" --version | \
-    sed -nEe 's/^.* ([0-9]+\.[0-9]+)(\.[^ ]+)?$/\1/p')
-
-# If a version has been specified check it matches
-if [[ -n "$postgres_version" && "$postgres_version" != "$found_version" ]]; then
-  error "Config specifies Postgres $postgres_version but found version $found_version in $postgres_bin_dir"
-  show_install_hint "$postgres_version"
-  exit 1
-else
-  confirm "Using Postgres $found_version binaries in $postgres_bin_dir"
-fi
+confirm "Using Postgres $found_version binaries in $postgres_bin_dir"
 
 if [ ! -e "$postgres_data_dir" ]; then
   mkdir "$postgres_data_dir"
@@ -148,10 +208,15 @@ if [ "$fs_type" == "vboxfs" ]; then
   error "This probably won't work very well!"
 fi
 
+# Only create a new database in an empty directory: we don't want to
+# accidentally overwrite things
 if [ ! "$(ls -A "$postgres_data_dir")" ]; then
   confirm "Creating new Postgres database in $postgres_data_dir"
   # Create the database cluster
-  "$postgres_bin_dir/initdb" --username="postgres" -D "$postgres_data_dir"
+  "$postgres_bin_dir/initdb" \
+    --username="postgres" \
+    --pgdata="$postgres_data_dir" \
+    $initdb_args
 else
   confirm "Found existing database in $postgres_data_dir"
 fi
@@ -161,25 +226,23 @@ confirm
 confirm "- To create a new database just delete or move this directory"
 confirm "  To make a copy, just use cp -r (with the server stopped)"
 confirm
-confirm "- To get more logging output run:"
-confirm "  $0 -d 2"
-confirm
-confirm "- To export this connection info:"
+confirm "- To export this connection string:"
 confirm "  export DATABASE_URL='postgres://postgres@localhost/postgres?host=$postgres_data_dir'"
 confirm
-confirm "- To connect to this database with the CLI client:"
-confirm "  psql -d \"\$DATABASE_URL\""
+confirm "- To get more vebose logging output re-run this command with:"
+confirm "  $0 -d 2"
 confirm
-confirm "- To load a database dump (will drop existing tables):"
-confirm "  pg_restore -cOxd \"\$DATABASE_URL\" <path/to/dumpfile>"
+confirm "- To connect to this database with the CLI client:"
+confirm "  $0 psql"
+confirm
+confirm "- To load a database dump:"
+confirm "  $0 pg_restore <path/to/dumpfile>"
 confirm
 
-# Run postgres server:
-#   -F         : disable fsync, we don't need it in development
-#   -h ''      : don't attempt to listen on any TCP sockets
-#   -k         : UNIX domain socket directory
-#   -D         : data directory
-# --autovacuum : don't start the autovacuum daemon, we don't need it in
-#                development and it clutters the output
-exec "$postgres_bin" -F -h '' --autovacuum=false -k "$postgres_data_dir" \
-  -D "$postgres_data_dir" "$@"
+# Run postgres server: setting `listen-addresses` to empty
+# prevents server trying to open a TCP port
+exec "$postgres_bin" \
+  --listen-addresses='' \
+  --unix-socket-directory="$postgres_data_dir" \
+  -D "$postgres_data_dir" \
+  $postgres_args $@

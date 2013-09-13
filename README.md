@@ -1,12 +1,13 @@
 postgres-up
 ===========
 
-Make developing with PostgreSQL as convenient as developing with Sqlite.
+Make developing with Postgres as convenient as developing with Sqlite.
 
-**postgres-up** creates and runs self-contained PostgreSQL instances. All the
-database state (including the connection socket) lives in a single
-directory which can be easily copied and moved about so you can easily
-create experimental "forks" of your database.
+**postgres-up** lets you create and run self-contained Postgres
+instances with a single command. All the database state (including the
+connection socket) lives in a single directory which can be easily copied
+and moved about so you can easily create experimental "forks" of your
+database.
 
 If you need to run different versions of Postgres for different
 projects, that's supported too.
@@ -22,9 +23,9 @@ This is a standalone bash script, just copy it somewhere you want it:
 
     curl -O https://raw.github.com/evansd/postgres-up/master/postgres-up && chmod a+x postgres-up
 
-The idea is that you can bundle this script with your project (together with a config file
--- see below) to make it as easy as possible for developers to get started.
-
+The idea is that you can bundle a copy of this script in your project
+repository so developers only need to type a single command to create a
+database and start working.
 
 #### Notes
 
@@ -37,30 +38,29 @@ applications with Postgres, absolutely not for running Postgres in
 production!
 
 
-Example session
----------------
+Usage
+------
+
+To create a new database (or start using an existing one):
 
     $ ./postgres-up
     Using Postgres 9.2 binaries in /usr/lib/postgresql/9.2/bin
     Found existing database in /home/dave/projects/postgres-up/pgdata
 
-    - To create a new database just delete or move this directory
-      To make a copy, just use cp -r (with the server stopped)
-
-    - To get more logging output from Postgres run:
-      bin/postgres-up -d 2
-
     - To export this connection info:
       export DATABASE_URL='postgres://postgres@localhost/postgres?host=/home/dave/projects/postgres-up/pgdata'
 
-    - To connect to this database with the CLI client:
-      psql -d "$DATABASE_URL"
+To connect with the CLI client to a database you're already running:
 
-    - To load a database dump (will drop existing tables):
-      pg_restore -cOxd "$DATABASE_URL" <path/to/dumpfile>
+    $ ./postgres-up psql
 
-    LOG:  database system was shut down at 2013-09-07 17:24:48 BST
-    LOG:  database system is ready to accept connections
+To load a database dump into your database:
+
+    $ ./postgres-up pg_restore <path/to/dump/file>
+
+In general, to run any Postgres command against your database:
+
+    $ ./postgres-up <command_name> <command_args ...>
 
 
 Configuration
@@ -88,7 +88,13 @@ create a config file in the same directory as the script called `postgres-up.con
     
     # Directories in which to look for Postgres binaries
     # Sensible defaults will be used if this is not specified
-    postgres_bin_path="/my/special/postgres/install:$PATH"
+    postgres_bin_path="/my/special/postgres/install:$postgres_bin_path"
+
+    # You can set default arguments for any Postgres command by setting
+    # a variable like this:
+    # <command_name>_args=' --myarg=myvalue'
+    # For example, to disable fsync for your Postgres instance:
+    # postgres_args='--fsync=off'
 
 Additionally, any of the variables set in the config file can also be
 set by passing them in the shell environment.
