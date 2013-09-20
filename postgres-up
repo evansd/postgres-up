@@ -63,6 +63,7 @@ function confirm (){ echo "$green$@$normal" 1>&2; }
 
 # Change into this script's directory
 unset CDPATH
+original_dir="$PWD"
 cd "$(dirname "$BASH_SOURCE[0]")"
 
 # Set default data dir (if not already set)
@@ -114,6 +115,7 @@ if [ "$command" != 'postgres'  ]; then
   [ "$command" == 'pg_restore' ] && default_args="--dbname=$PGDATABASE $default_args"
 
   # Run the command
+  cd "$original_dir"
   exec "$postgres_bin_dir/$command" $default_args $@
 fi
 
@@ -241,6 +243,7 @@ confirm
 
 # Run postgres server: setting `listen-addresses` to empty
 # prevents server trying to open a TCP port
+cd "$original_dir"
 exec "$postgres_bin" \
   --listen-addresses='' \
   --unix-socket-directory="$postgres_data_dir" \
