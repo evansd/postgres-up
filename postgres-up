@@ -102,7 +102,7 @@ if [ "$command" != 'postgres'  ]; then
   # Default arguments are configured by variables of the form
   # <command_name>_args (e.g., pg_restore_args)
   default_arg_var_name="${command}_args"
-  default_args=${!arg_var_name}
+  default_args=${!default_arg_var_name}
 
   export PGHOST="$postgres_data_dir"
   export PGDATA="$postgres_data_dir"
