@@ -116,7 +116,7 @@ if [ "$command" != 'postgres'  ]; then
 
   # Run the command
   cd "$original_dir"
-  exec "$postgres_bin_dir/$command" $default_args $@
+  exec "$postgres_bin_dir/$command" "$default_args" "$@"
 fi
 
 
@@ -248,4 +248,4 @@ exec "$postgres_bin" \
   --listen-addresses='' \
   --unix-socket-directory="$postgres_data_dir" \
   -D "$postgres_data_dir" \
-  $postgres_args $@
+  $postgres_args "$@"
