@@ -246,6 +246,6 @@ confirm
 cd "$original_dir"
 exec "$postgres_bin" \
   --listen-addresses='' \
-  --unix-socket-directory="$postgres_data_dir" \
+  -k "$postgres_data_dir" \
   -D "$postgres_data_dir" \
   $postgres_args "$@"
