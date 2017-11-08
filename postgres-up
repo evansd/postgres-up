@@ -193,7 +193,7 @@ postgres_bin_dir=$(dirname "$postgres_bin")
 confirm "Using Postgres $found_version binaries in $postgres_bin_dir"
 
 if [ ! -e "$postgres_data_dir" ]; then
-  mkdir "$postgres_data_dir"
+  mkdir -p "$postgres_data_dir"
 fi
 
 # Normalize the path
