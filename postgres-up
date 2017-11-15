@@ -219,6 +219,15 @@ if [ ! "$(ls -A "$postgres_data_dir")" ]; then
     --username="postgres" \
     --pgdata="$postgres_data_dir" \
     $initdb_args
+  if [ -n "$database_init_script" ]; then
+    (
+      sleep 1 \
+      && confirm "Running database init script:  $database_init_script" \
+      &&  $database_init_script \
+      && echo \
+      && confirm 'Completed database init script'
+    ) &
+  fi
 else
   confirm "Found existing database in $postgres_data_dir"
 fi
