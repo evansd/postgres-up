@@ -160,8 +160,10 @@ else
 fi
 
 function get_postgres_version (){
-  # Get the version (major.minor) of the Postgres binary
-  "$1" --version | sed -nEe 's/^.* ([0-9]+\.[0-9]+)(\.[^ ]+)?$/\1/p'
+  # Get the version of the Postgres binary. For versions less than 10 we need
+  # the major and minor numbers (e.g 9.2); for versions 10 and above we just
+  # need the major number
+  "$1" --version | sed -nEe 's/^.*\(PostgreSQL\) (([0-9]\.[0-9]+|[0-9][0-9]+)).*$/\1/p'
 }
 
 # Search the path for a Postgres binary of the right version
