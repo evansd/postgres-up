@@ -116,7 +116,11 @@ if [ "$command" != 'postgres'  ]; then
 
   # Run the command
   cd "$original_dir"
-  exec "$postgres_bin_dir/$command" "$default_args" "$@"
+  if [ ! -z "$default_args" ]; then
+    exec "$postgres_bin_dir/$command" "$default_args" "$@"
+  else
+    exec "$postgres_bin_dir/$command" "$@"
+  fi
 fi
 
 
